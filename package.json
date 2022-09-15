@@ -16,5 +16,8 @@
   "bugs": {
     "url": "https://github.com/edlynshih/tinyapp/issues"
   },
-  "homepage": "https://github.com/edlynshih/tinyapp#readme"
+  "homepage": "https://github.com/edlynshih/tinyapp#readme",
+  "dependencies": {
+    "express": "^4.18.1"
+  }
 }
