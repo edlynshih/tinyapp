@@ -1,7 +1,8 @@
 const express = require("express");
 const app = express();
-const PORT = 8080; // default port 8080
+const PORT = 8080; 
 
+//Tells express to use EJS as its templating engine
 app.set("view engine", "ejs");
 
 const urlDatabase = {
@@ -9,37 +10,54 @@ const urlDatabase = {
   "9sm5xK": "http://www.google.com"
 };
 
+//Body-parser library which converts the request body from a Buffer into string that we can read
 app.use(express.urlencoded({ extended: true }));
 
+//when user navigate to home page
 app.get("/", (req, res) => {
   res.send("Hello!");
 });
 
-app.post("/urls", (req, res) => {
-  console.log(req.body); // Log the POST request body to the console
-  res.send("Ok"); // Respond with 'Ok' (we will replace this)
-});
-
+//user will see JSON string representing the entire urlDatabase object
 app.get("/urls.json", (req, res) => {
   res.json(urlDatabase);
 });
 
+//user will see HTLM code in the client browser
 app.get("/hello", (req, res) => {
   res.send("<html><body>Hello <b>World</b></body></html>\n");
 });
 
+// route handler for "/urls" and use res.render() to pass the URL data to our template
 app.get("/urls", (req, res) => {
   const templateVars = { urls: urlDatabase };
-  res.render("urls_index", templateVars);
+  res.render("urls_index", templateVars); //res.render takes name of template and an obj, so we can use the key of that obj (urls) to access the data within our template
 });
 
+// get route to show user the form to submit URLs to be shortened
 app.get("/urls/new", (req, res) => {
   res.render("urls_new");
 });
 
-app.get("/urls/:id", (req, res) => {
+//Use the id from the route parameter to lookup it's associated longURL from the urlDatabase
+app.get("/urls/:id", (req, res) => { //: infront of the id indicates that id the route parameter
   const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id] };
   res.render("urls_show", templateVars);
+});
+
+//requests to the endpoint "/u/:id" will redirect to its longURL
+app.get("/u/:id", (req, res) => {
+  const id = req.params.id;
+  const longURL = urlDatabase[id];
+  res.redirect(longURL);
+});
+
+//post route to handle the form submission
+app.post("/urls", (req, res) => {
+  const shortURL = generateRandomString();
+  const longURL = req.body.longURL; //post req has a body, data in the input field is avaialble in the req.body.longURL variable (can store in the urlDatabase obj)
+  urlDatabase[shortURL] = longURL; //save longURL and shortURL id to our urlDatabase
+  res.redirect(`/urls/${shortURL}`); //redirect the user to a new page that shows the short url. Browser makes a GET request to /urls/:id (urls_show)
 });
 
 app.listen(PORT, () => {
