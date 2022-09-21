@@ -67,6 +67,14 @@ app.post("/urls/:id/delete", (req, res) => {
   res.redirect("/urls");
 });
 
+//post route to update the value of the stored long URL based on the new value in req.body
+app.post("/urls/:id", (req, res) => {
+  const id = req.params.id;
+  const longURL = req.body.longURL;
+  urlDatabase[id] = longURL;
+  res.redirect("/urls");
+})
+
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
 });
