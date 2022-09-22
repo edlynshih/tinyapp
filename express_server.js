@@ -5,6 +5,8 @@ const PORT = 8080;
 //Tells express to use EJS as its templating engine
 app.set("view engine", "ejs");
 
+var cookieParser = require('cookie-parser')
+
 const urlDatabase = {
   "b2xVn2": "http://www.lighthouselabs.ca",
   "9sm5xK": "http://www.google.com"
@@ -12,16 +14,16 @@ const urlDatabase = {
 
 //Body-parser library which converts the request body from a Buffer into string that we can read
 app.use(express.urlencoded({ extended: true }));
-
+app.use(cookieParser());
 //when user navigate to home page
 app.get("/", (req, res) => {
   res.send("Hello!");
 });
 
-//user will see JSON string representing the entire urlDatabase object
-app.get("/urls.json", (req, res) => {
-  res.json(urlDatabase);
-});
+// //user will see JSON string representing the entire urlDatabase object
+// app.get("/urls.json", (req, res) => {
+//   res.json(urlDatabase);
+// });
 
 //user will see HTLM code in the client browser
 app.get("/hello", (req, res) => {
@@ -30,18 +32,23 @@ app.get("/hello", (req, res) => {
 
 // route handler for "/urls" and use res.render() to pass the URL data to our template
 app.get("/urls", (req, res) => {
-  const templateVars = { urls: urlDatabase };
+  // let username = null;
+  // if (req.cookies["username"]) {
+  //   username = req.cookies['username']
+  // }
+  const templateVars = { urls: urlDatabase, username: req.cookies["username"] };
   res.render("urls_index", templateVars); //res.render takes name of template and an obj, so we can use the key of that obj (urls) to access the data within our template
 });
 
 // get route to show user the form to submit URLs to be shortened
 app.get("/urls/new", (req, res) => {
-  res.render("urls_new");
+  const templateVars = { username: req.cookies["username"] };
+  res.render("urls_new", templateVars);
 });
 
 //Use the id from the route parameter to lookup it's associated longURL from the urlDatabase
 app.get("/urls/:id", (req, res) => { //: infront of the id indicates that id the route parameter
-  const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id] };
+  const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id], username: req.cookies["username"] };
   res.render("urls_show", templateVars);
 });
 
@@ -73,17 +80,25 @@ app.post("/urls/:id", (req, res) => {
   const longURL = req.body.longURL;
   urlDatabase[id] = longURL;
   res.redirect("/urls");
-})
+});
+
+//post route to handle login and set a cookie
+app.post("/login", (req, res) => {
+  const username = req.body.username;
+  res.cookie("username", username);
+  res.redirect("/urls");
+});
+
+//post route to handle logout and clear cookie
+app.post("/logout", (req, res) => {
+  res.clearCookie("username");
+  res.redirect("/urls");
+});
 
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
 });
 
 function generateRandomString() {
-  let randomString = '';
-  const char = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-  for(let i = 0; i < 6; i++) {
-    randomString += char[Math.floor(Math.random() * char.length)];
-  }
-  return randomString;
+  return Math.random().toString(36).substring(2, 7);
 };
