@@ -52,6 +52,11 @@ app.get("/u/:id", (req, res) => {
   res.redirect(longURL);
 });
 
+//get route to show user registration form
+app.get("/register", (req, res) => {
+  res.render("urls_registration");
+})
+
 //post route to handle the form submission
 app.post("/urls", (req, res) => {
   const shortURL = generateRandomString();
