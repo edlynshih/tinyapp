@@ -61,7 +61,8 @@ app.get("/u/:id", (req, res) => {
 
 //get route to show user registration form
 app.get("/register", (req, res) => {
-  res.render("urls_registration");
+  const templateVars = { username: req.cookies["username"] };
+  res.render("urls_registration", templateVars);
 })
 
 //post route to handle the form submission
