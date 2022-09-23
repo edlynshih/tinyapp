@@ -1,6 +1,6 @@
 const express = require("express");
 const app = express();
-const PORT = 8080; 
+const PORT = 8080;
 
 //Tells express to use EJS as its templating engine
 app.set("view engine", "ejs");
@@ -38,8 +38,8 @@ app.get("/", (req, res) => {
 app.get("/urls", (req, res) => {
   const userid = req.cookies["user_id"];
   const user = users[userid];
-  const templateVars = { 
-    urls: urlDatabase, 
+  const templateVars = {
+    urls: urlDatabase,
     user
   };
   res.render("urls_index", templateVars); //res.render takes name of template and an obj, so we can use the key of that obj (urls) to access the data within our template
@@ -57,10 +57,10 @@ app.get("/urls/new", (req, res) => {
 app.get("/urls/:id", (req, res) => { //: infront of the id indicates that id the route parameter
   const userid = req.cookies["user_id"];
   const user = users[userid];
-  const templateVars = { 
-    id: req.params.id, 
-    longURL: urlDatabase[req.params.id], 
-    user 
+  const templateVars = {
+    id: req.params.id,
+    longURL: urlDatabase[req.params.id],
+    user
   };
   res.render("urls_show", templateVars);
 });
@@ -115,14 +115,34 @@ app.post("/logout", (req, res) => {
 
 //post route to handle registration form data
 app.post("/register", (req, res) => {
-  const uniqueID = generateRandomString();
-  users[uniqueID]= {
-    id: uniqueID,
-    email: req.body.email,
-    password: req.body.password
-  };
-  res.cookie("user_id", users[uniqueID].id);
-  res.redirect("/urls");
+
+  const { email, password } = req.body;
+  if (!email || !password) {
+    // let templateVars = {
+    //   user: users[null],
+    //   status: 400,
+    //   error: "The email and/or password missing. Please try again."
+    // };
+    return res.status(400).send("The email or password cannot be blank. Please try again.");//.render("urls_errors", templateVars);
+  } else if (getUserByEmail(email, users)){
+    // let templateVars = {
+    //   user: users[null],
+    //   status: 400,
+    //   error: "The email has already been registered."
+    // };
+      return res.status(400).send("The email has already been registered.");//.render("urls_errors", templateVars);
+  } else {
+    const uniqueID = generateRandomString();
+    users[uniqueID] = {
+      id: uniqueID,
+      email: req.body.email,
+      password: req.body.password
+    };
+    res.cookie("user_id", users[uniqueID].id);
+    res.redirect("/urls");
+  }
+
+  console.log(users)
 });
 
 app.listen(PORT, () => {
@@ -131,4 +151,9 @@ app.listen(PORT, () => {
 
 function generateRandomString() {
   return Math.random().toString(36).substring(2, 8);
+};
+
+//return user obj with matching email
+function getUserByEmail(email, users) {
+  return Object.values(users).find(user => user.email === email);
 };
