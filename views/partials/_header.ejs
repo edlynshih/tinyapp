@@ -18,14 +18,14 @@
         <a class="nav-item nav-link" href="/urls/new">Create New URL</a>
       </div>
     </div>
-    <% if (!username) { %>
+    <% if (!user) { %>
       <form class="form-inline" method="POST" action="/login">
-        <input class="form-control" type="text" name="username" placeholder="Username" style="width: 300px; margin: 1em" />
+        <input class="form-control" type="text" name="email" placeholder="Username" style="width: 300px; margin: 1em" />
         <button type="submit" class="btn btn-outline-dark">Login</button>
       </form>
       <% } else { %>
         <form class="form-inline" method="POST" action="/logout">
-          <span>Logged in as: TinyApp User!</span> 
+          <span>Logged in as: <%= user.email %></span> 
             <button type="submit" class="btn btn-outline-dark" style="margin-left: 1em">Logout</button>
         </form>
         <% } %>

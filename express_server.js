@@ -12,43 +12,56 @@ const urlDatabase = {
   "9sm5xK": "http://www.google.com"
 };
 
+const users = {
+  userRandomID: {
+    id: "userRandomID",
+    email: "user@example.com",
+    password: "purple-monkey-dinosaur",
+  },
+  user2RandomID: {
+    id: "user2RandomID",
+    email: "user2@example.com",
+    password: "dishwasher-funk",
+  },
+};
+
 //Body-parser library which converts the request body from a Buffer into string that we can read
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+
 //when user navigate to home page
 app.get("/", (req, res) => {
   res.send("Hello!");
 });
 
-// //user will see JSON string representing the entire urlDatabase object
-// app.get("/urls.json", (req, res) => {
-//   res.json(urlDatabase);
-// });
-
-//user will see HTLM code in the client browser
-app.get("/hello", (req, res) => {
-  res.send("<html><body>Hello <b>World</b></body></html>\n");
-});
-
 // route handler for "/urls" and use res.render() to pass the URL data to our template
 app.get("/urls", (req, res) => {
-  // let username = null;
-  // if (req.cookies["username"]) {
-  //   username = req.cookies['username']
-  // }
-  const templateVars = { urls: urlDatabase, username: req.cookies["username"] };
+  const userid = req.cookies["user_id"];
+  const user = users[userid];
+  const templateVars = { 
+    urls: urlDatabase, 
+    user
+  };
   res.render("urls_index", templateVars); //res.render takes name of template and an obj, so we can use the key of that obj (urls) to access the data within our template
 });
 
 // get route to show user the form to submit URLs to be shortened
 app.get("/urls/new", (req, res) => {
-  const templateVars = { username: req.cookies["username"] };
+  const userid = req.cookies["user_id"];
+  const user = users[userid];
+  const templateVars = { user };
   res.render("urls_new", templateVars);
 });
 
 //Use the id from the route parameter to lookup it's associated longURL from the urlDatabase
 app.get("/urls/:id", (req, res) => { //: infront of the id indicates that id the route parameter
-  const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id], username: req.cookies["username"] };
+  const userid = req.cookies["user_id"];
+  const user = users[userid];
+  const templateVars = { 
+    id: req.params.id, 
+    longURL: urlDatabase[req.params.id], 
+    user 
+  };
   res.render("urls_show", templateVars);
 });
 
@@ -61,7 +74,9 @@ app.get("/u/:id", (req, res) => {
 
 //get route to show user registration form
 app.get("/register", (req, res) => {
-  const templateVars = { username: req.cookies["username"] };
+  const userid = req.cookies["user_id"];
+  const user = users[userid];
+  const templateVars = { user };
   res.render("urls_registration", templateVars);
 })
 
@@ -90,14 +105,23 @@ app.post("/urls/:id", (req, res) => {
 
 //post route to handle login and set a cookie
 app.post("/login", (req, res) => {
-  const username = req.body.username;
-  res.cookie("username", username);
   res.redirect("/urls");
 });
 
 //post route to handle logout and clear cookie
 app.post("/logout", (req, res) => {
-  res.clearCookie("username");
+  res.redirect("/urls");
+});
+
+//post route to handle registration form data
+app.post("/register", (req, res) => {
+  const uniqueID = generateRandomString();
+  users[uniqueID]= {
+    id: uniqueID,
+    email: req.body.email,
+    password: req.body.password
+  };
+  res.cookie("user_id", users[uniqueID].id);
   res.redirect("/urls");
 });
 
@@ -106,5 +130,5 @@ app.listen(PORT, () => {
 });
 
 function generateRandomString() {
-  return Math.random().toString(36).substring(2, 7);
+  return Math.random().toString(36).substring(2, 8);
 };
