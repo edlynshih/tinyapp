@@ -80,6 +80,18 @@ app.get("/register", (req, res) => {
   res.render("urls_registration", templateVars);
 })
 
+//get route to show user login form
+app.get("/login", (req, res) => {
+  const userid = req.cookies["user_id"];
+  const user = users[userid];
+  const templateVars = { user };
+  if (templateVars.user) {
+    res.redirect("/urls");
+  } else {
+    res.render("urls_login", templateVars);
+  };
+});
+
 //post route to handle the form submission
 app.post("/urls", (req, res) => {
   const shortURL = generateRandomString();
@@ -110,6 +122,7 @@ app.post("/login", (req, res) => {
 
 //post route to handle logout and clear cookie
 app.post("/logout", (req, res) => {
+  res.clearCookie("user_id");
   res.redirect("/urls");
 });
 
