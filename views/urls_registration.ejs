@@ -14,10 +14,9 @@
 
 <body>
   <%- include('partials/_header') %>
-
     <main style="margin: 1em;">
       <h3>Hi there!</h3>
-      <p>Please enter your email to sign up</p>
+      <p><b>Please enter your email and password to sign up</b></p>
       <form action="/register" method="POST">
         <div class="form-group mb-2">
           <label for="email">Email:</label>
@@ -25,8 +24,8 @@
             class="form-control" 
             type="email" 
             name="email" 
-            placeholder="Enter your Email:"
-            style="width: 300px; margin: 1em" />
+            placeholder="hello@example.com"
+            style="width: 300px" />
         </div>
         <div class="form-group mb-2">
           <label for="password">Password:</label>
@@ -34,11 +33,11 @@
             class="form-control" 
             type="password" 
             name="password" 
-            placeholder="Enter your password:"
-            style="width: 300px; margin: 1em" />
+            placeholder="password"
+            style="width: 300px" />
           <span><small>Already have an account? <a href="/login"><b>Login</b></a></span></small>
         </div>
-        <button type="submit" class="btn btn-primary">Submit</button>
+        <button type="submit" class="btn btn-primary">Register</button>
       </form>
     </main>
     <!-- Bootstrap JS -->

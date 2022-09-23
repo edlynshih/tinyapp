@@ -19,8 +19,8 @@
       </div>
     </div>
     <% if (!user) { %>
-      <a class="btn btn-outline-light" style="margin:5px" href="/login">Login</a>
-      <a class="btn btn-outline-light" style="margin:5px" href="/register">Register</a>
+      <a class="btn btn-outline-light" style="margin:3px" href="/login">Login</a>
+      <a class="btn btn-outline-light" style="margin:3px" href="/register">Register</a>
       <% } else { %>
         <form class="form-inline justify-content-right" method="POST" action="/logout">
           <span>Logged in as: <%= user.email %></span> 

@@ -5,7 +5,7 @@ const PORT = 8080;
 //Tells express to use EJS as its templating engine
 app.set("view engine", "ejs");
 
-var cookieParser = require('cookie-parser')
+const cookieParser = require('cookie-parser')
 
 const urlDatabase = {
   "b2xVn2": "http://www.lighthouselabs.ca",
@@ -117,7 +117,17 @@ app.post("/urls/:id", (req, res) => {
 
 //post route to handle login and set a cookie
 app.post("/login", (req, res) => {
-  res.redirect("/urls");
+  const { email, password } = req.body;
+  const user = getUserByEmail(email, users);
+
+  if (!user) {
+    return res.status(403).send("The email cannot be found.");
+  } else if (user.password !== password) {
+    return res.status(403).send("Incorrect credentials. Try again.");
+  } else {
+    res.cookie("user_id", user.id)
+    res.redirect("/urls");
+  };
 });
 
 //post route to handle logout and clear cookie
@@ -128,22 +138,12 @@ app.post("/logout", (req, res) => {
 
 //post route to handle registration form data
 app.post("/register", (req, res) => {
-
   const { email, password } = req.body;
+
   if (!email || !password) {
-    // let templateVars = {
-    //   user: users[null],
-    //   status: 400,
-    //   error: "The email and/or password missing. Please try again."
-    // };
-    return res.status(400).send("The email or password cannot be blank. Please try again.");//.render("urls_errors", templateVars);
+    return res.status(400).send("The email or password cannot be blank. Please try again.");
   } else if (getUserByEmail(email, users)){
-    // let templateVars = {
-    //   user: users[null],
-    //   status: 400,
-    //   error: "The email has already been registered."
-    // };
-      return res.status(400).send("The email has already been registered.");//.render("urls_errors", templateVars);
+      return res.status(400).send("The email has already been registered.");
   } else {
     const uniqueID = generateRandomString();
     users[uniqueID] = {
@@ -154,8 +154,6 @@ app.post("/register", (req, res) => {
     res.cookie("user_id", users[uniqueID].id);
     res.redirect("/urls");
   }
-
-  console.log(users)
 });
 
 app.listen(PORT, () => {
