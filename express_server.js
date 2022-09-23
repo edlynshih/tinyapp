@@ -1,12 +1,19 @@
+// -------------------- DEPENDENCIES -------------------- //
+
 const express = require("express");
 const app = express();
+const cookieParser = require('cookie-parser')
 const PORT = 8080;
+
+// -------------------- MIDDLEWARE -------------------- //
 
 //Tells express to use EJS as its templating engine
 app.set("view engine", "ejs");
+//Body-parser library which converts the request body from a Buffer into string that we can read
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
-const cookieParser = require('cookie-parser')
-
+// -------------------- FEED DATA -------------------- //
 
 const urlDatabase = {
   "b2xVn2": "http://www.lighthouselabs.ca",
@@ -26,19 +33,7 @@ const users = {
   },
 };
 
-//Body-parser library which converts the request body from a Buffer into string that we can read
-app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser());
-
-// //user will see JSON string representing the entire urlDatabase object
-// app.get("/urls.json", (req, res) => {
-//   res.json(urlDatabase);
-// });
-
-//user will see HTLM code in the client browser
-app.get("/hello", (req, res) => {
-  res.send("<html><body>Hello <b>World</b></body></html>\n");
-});
+// -------------------- ROUTES -------------------- //
 
 // route handler for "/urls" and use res.render() to pass the URL data to our template
 app.get("/urls", (req, res) => {
@@ -48,11 +43,10 @@ app.get("/urls", (req, res) => {
     urls: urlDatabase,
     user
   };
-
   res.render("urls_index", templateVars); //res.render takes name of template and an obj, so we can use the key of that obj (urls) to access the data within our template
 });
 
-// get route to show user the form to submit URLs to be shortened
+// get route to show user the form to submit new URLs to be shortened
 app.get("/urls/new", (req, res) => {
   const userid = req.cookies["user_id"];
   const user = users[userid];
@@ -166,6 +160,8 @@ app.post("/register", (req, res) => {
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
 });
+
+// -------------------- HELPER FUNCTIONS -------------------- //
 
 function generateRandomString() {
   return Math.random().toString(36).substring(2, 8);
