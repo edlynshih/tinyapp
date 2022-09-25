@@ -2,7 +2,8 @@
 
 const express = require("express");
 const app = express();
-const cookieParser = require('cookie-parser')
+const cookieParser = require('cookie-parser');
+const bcrypt = require("bcryptjs");
 const PORT = 8080;
 
 // -------------------- MIDDLEWARE -------------------- //
@@ -195,7 +196,7 @@ app.post("/login", (req, res) => {
 
   if (!user) {
     return res.status(403).send("The email cannot be found.");
-  } else if (user.password !== password) {
+  } else if (!bcrypt.compareSync(password, user.password)) {
     return res.status(403).send("Incorrect credentials. Try again.");
   } else if (!email || !password) {
     return res.status(400).send("The email or password cannot be blank. Please try again.");
@@ -215,6 +216,7 @@ app.post("/logout", (req, res) => {
 //post route to handle registration form data
 app.post("/register", (req, res) => {
   const { email, password } = req.body;
+  const hashedPassword = bcrypt.hashSync(password, 10); //converts the plain-text password to an unintelligible string with a salt
 
   if (!email || !password) {
     return res.status(400).send("The email or password cannot be blank. Please try again.");
@@ -225,7 +227,7 @@ app.post("/register", (req, res) => {
     users[uniqueID] = {
       id: uniqueID,
       email: req.body.email,
-      password: req.body.password
+      password: hashedPassword
     };
     res.cookie("user_id", users[uniqueID].id);
     res.redirect("/urls");
