@@ -1,9 +1,10 @@
 // -------------------- DEPENDENCIES -------------------- //
 
-const express = require("express");
+const express = require('express');
 const app = express();
-const cookieParser = require('cookie-parser');
-const bcrypt = require("bcryptjs");
+const bcrypt = require('bcryptjs');
+const cookieSession = require('cookie-session');
+const { generateRandomString, getUserByEmail, urlsForUser } = require('./helpers');
 const PORT = 8080;
 
 // -------------------- MIDDLEWARE -------------------- //
@@ -12,7 +13,11 @@ const PORT = 8080;
 app.set("view engine", "ejs");
 //Body-parser library which converts the request body from a Buffer into string that we can read
 app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser());
+app.use(cookieSession({
+  name: 'session',
+  keys: ['key1', 'key2']
+})
+);
 
 // -------------------- FEED DATA -------------------- //
 
@@ -44,7 +49,7 @@ const users = {
 
 // route handler for "/urls" and use res.render() to pass the URL data to our template
 app.get("/urls", (req, res) => {
-  const userid = req.cookies["user_id"];
+  const userid = req.session.user_id;
   const user = users[userid];
   const templateVars = {
     urls: urlsForUser(urlDatabase, userid),
@@ -52,7 +57,7 @@ app.get("/urls", (req, res) => {
   };
 
   if (!userid) { //not sure if this is correct
-    return res.send("Please log in or register to create tinyURL.");
+    res.send("Please log in or register to create tinyURL.");
   } else {
     res.render("urls_index", templateVars); //res.render takes name of template and an obj, so we can use the key of that obj (urls) to access the data within our template
   };
@@ -61,7 +66,7 @@ app.get("/urls", (req, res) => {
 
 // get route to show user the form to submit new URLs to be shortened
 app.get("/urls/new", (req, res) => {
-  const userid = req.cookies["user_id"];
+  const userid = req.session.user_id;
   const user = users[userid];
   const templateVars = { user };
   
@@ -75,7 +80,7 @@ app.get("/urls/new", (req, res) => {
 
 //Use the id from the route parameter to lookup it's associated longURL from the urlDatabase
 app.get("/urls/:id", (req, res) => { //: infront of the id indicates that id the route parameter
-  const userid = req.cookies["user_id"];
+  const userid = req.session.user_id;
   const user = users[userid];
   const templateVars = {
     id: req.params.id,
@@ -85,6 +90,8 @@ app.get("/urls/:id", (req, res) => { //: infront of the id indicates that id the
 
   if (!userid) {
     res.send("Please log in to see your tinyURL!");
+  } else if (!urlDatabase[req.params.id]) {
+    res.send("This tiny URL does not exist.")
   } else if (userid !== urlDatabase[req.params.id].userID) {
     res.send("You are not authorized to access this tinyURL.")
   } else {
@@ -108,7 +115,7 @@ app.get("/u/:id", (req, res) => {
 
 //get route to show user registration form
 app.get("/register", (req, res) => {
-  const userid = req.cookies["user_id"];
+  const userid = req.session.user_id;
   const user = users[userid];
   const templateVars = { user };
 
@@ -122,7 +129,7 @@ app.get("/register", (req, res) => {
 
 //get route to show user login form
 app.get("/login", (req, res) => {
-  const userid = req.cookies["user_id"];
+  const userid = req.session.user_id;
   const user = users[userid];
   const templateVars = { user };
 
@@ -137,12 +144,12 @@ app.get("/login", (req, res) => {
 //post route to handle the form submission
 app.post("/urls", (req, res) => {
 
-  if (!req.cookies["user_id"]) { //not sure if this is correct
+  if (!req.session.user_id) { //not sure if this is correct
     res.send("Please log in to create new URL.");
   } else {
     const shortURL = generateRandomString();
     const longURL = req.body.longURL; //post req has a body, data in the input field is avaialble in the req.body.longURL variable (can store in the urlDatabase obj)
-    const userID = req.cookies["user_id"];
+    const userID = req.session.user_id;
     urlDatabase[shortURL] = { 
       longURL: longURL,
       userID: userID
@@ -155,7 +162,7 @@ app.post("/urls", (req, res) => {
 //post route that removes a URL resource
 app.post("/urls/:id/delete", (req, res) => {
   const id = req.params.id;
-  const userid = req.cookies["user_id"];
+  const userid = req.session.user_id;
   
   if (!urlDatabase[id]) {
     res.send("This tiny URL does not exist.");
@@ -175,7 +182,7 @@ app.post("/urls/:id", (req, res) => {
   const id = req.params.id;
   const longURL = req.body.longURL;
   urlDatabase[id].longURL = longURL;
-  const userid = req.cookies["user_id"];
+  const userid = req.session.user_id;
 
   if (!userid) {
     res.send("Please log in to see your tinyURL!");
@@ -201,7 +208,7 @@ app.post("/login", (req, res) => {
   } else if (!email || !password) {
     return res.status(400).send("The email or password cannot be blank. Please try again.");
   } else {
-    res.cookie("user_id", user.id)
+    req.session.user_id = user.id;
     res.redirect("/urls");
   };
 
@@ -209,7 +216,7 @@ app.post("/login", (req, res) => {
 
 //post route to handle logout and clear cookie
 app.post("/logout", (req, res) => {
-  res.clearCookie("user_id");
+  req.session = null;
   res.redirect("/urls");
 });
 
@@ -229,34 +236,12 @@ app.post("/register", (req, res) => {
       email: req.body.email,
       password: hashedPassword
     };
-    res.cookie("user_id", users[uniqueID].id);
+    req.session.user_id = uniqueID;
     res.redirect("/urls");
-  }
+  };
 
 });
 
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
 });
-
-// -------------------- HELPER FUNCTIONS -------------------- //
-
-function generateRandomString() {
-  return Math.random().toString(36).substring(2, 8);
-};
-
-//return user obj with matching email
-function getUserByEmail(email, users) {
-  return Object.values(users).find(user => user.email === email);
-};
-
-//return the URLs where the userID is equal to the id of the currently logged in user
-function urlsForUser(urlDatabase, userID) {
-  const filteredURLS = {};
-  for (let shortURL in urlDatabase) {
-    if (userID === urlDatabase[shortURL].userID) {
-      filteredURLS[shortURL] = urlDatabase[shortURL];
-    }
-  };
-  return filteredURLS;
-};
