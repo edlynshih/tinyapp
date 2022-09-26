@@ -19,7 +19,7 @@ app.use(cookieSession({
 })
 );
 
-// -------------------- FEED DATA -------------------- //
+// -------------------- DATABASES -------------------- //
 
 const urlDatabase = {};
 const users = {};
