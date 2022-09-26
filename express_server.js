@@ -21,31 +21,19 @@ app.use(cookieSession({
 
 // -------------------- FEED DATA -------------------- //
 
-const urlDatabase = {
-  b6UTxQ: {
-    longURL: "https://www.tsn.ca",
-    userID: "aJ48lW",
-  },
-  i3BoGr: {
-    longURL: "https://www.google.ca",
-    userID: "aJ48lW",
-  },
-};
-
-const users = {
-  userRandomID: {
-    id: "userRandomID",
-    email: "user@example.com",
-    password: "purple-monkey-dinosaur",
-  },
-  user2RandomID: {
-    id: "user2RandomID",
-    email: "user2@example.com",
-    password: "dishwasher-funk",
-  },
-};
+const urlDatabase = {};
+const users = {};
 
 // -------------------- ROUTES -------------------- //
+
+// homepage
+app.get("/", (req, res) => {
+  if (req.session.user_id) {
+    res.redirect("/urls");
+  } else {
+    res.redirect("/login");
+  };
+});
 
 // route handler for "/urls" and use res.render() to pass the URL data to our template
 app.get("/urls", (req, res) => {
@@ -56,8 +44,8 @@ app.get("/urls", (req, res) => {
     user
   };
 
-  if (!userid) { //not sure if this is correct
-    res.send("Please log in or register to create tinyURL.");
+  if (!userid) {
+    res.status(401).send("Please log in or register to create shortened URLs.");
   } else {
     res.render("urls_index", templateVars); //res.render takes name of template and an obj, so we can use the key of that obj (urls) to access the data within our template
   };
@@ -70,7 +58,7 @@ app.get("/urls/new", (req, res) => {
   const user = users[userid];
   const templateVars = { user };
   
-  if (!templateVars.user) {
+  if (!userid) {
     res.redirect("/login");
   } else {
     res.render("urls_new", templateVars);
@@ -82,34 +70,33 @@ app.get("/urls/new", (req, res) => {
 app.get("/urls/:id", (req, res) => { //: infront of the id indicates that id the route parameter
   const userid = req.session.user_id;
   const user = users[userid];
+
+  if (!urlDatabase[req.params.id]) {
+    res.status(404).send("This tiny URL does not exist.");
+  } else if (!userid) {
+    res.status(401).send("Please log in to see your tiny URLs.");
+  } else if (userid !== urlDatabase[req.params.id].userID) {
+    res.status(403).send("You are not authorized to access this tinyURL.");
+  } 
+  
   const templateVars = {
     id: req.params.id,
     longURL: urlDatabase[req.params.id].longURL,
     user
   };
-
-  if (!userid) {
-    res.send("Please log in to see your tinyURL!");
-  } else if (!urlDatabase[req.params.id]) {
-    res.send("This tiny URL does not exist.")
-  } else if (userid !== urlDatabase[req.params.id].userID) {
-    res.send("You are not authorized to access this tinyURL.")
-  } else {
-    res.render("urls_show", templateVars);
-  };
+  res.render("urls_show", templateVars);
 
 });
 
 //requests to the endpoint "/u/:id" will redirect to its longURL
 app.get("/u/:id", (req, res) => {
   const id = req.params.id;
-  const longURL = urlDatabase[id].longURL;
-  
-  if (!urlDatabase[id]) {
-    return res.status(404).send("This tiny URL does not exist.");
-  } 
 
-  res.redirect(longURL);
+  if (!urlDatabase[id]) {
+    res.status(404).send("This tiny URL does not exist.");
+  } else {
+    res.redirect(urlDatabase[id].longURL);
+  };
 
 });
 
@@ -119,7 +106,7 @@ app.get("/register", (req, res) => {
   const user = users[userid];
   const templateVars = { user };
 
-  if (templateVars.user) {
+  if (userid) {
     res.redirect("/urls");
   } else {
     res.render("urls_registration", templateVars);
@@ -133,7 +120,7 @@ app.get("/login", (req, res) => {
   const user = users[userid];
   const templateVars = { user };
 
-  if (templateVars.user) {
+  if (userid) {
     res.redirect("/urls");
   } else {
     res.render("urls_login", templateVars);
@@ -143,18 +130,19 @@ app.get("/login", (req, res) => {
 
 //post route to handle the form submission
 app.post("/urls", (req, res) => {
+  const userid = req.session.user_id;
 
-  if (!req.session.user_id) { //not sure if this is correct
-    res.send("Please log in to create new URL.");
+  if (!userid) {
+    res.status(401).send("Please log in to create new URL.");
   } else {
-    const shortURL = generateRandomString();
-    const longURL = req.body.longURL; //post req has a body, data in the input field is avaialble in the req.body.longURL variable (can store in the urlDatabase obj)
+    const id = generateRandomString();
+    const longURL = req.body.longURL; //post req has a body, data in the input field is avaialble in the req.body
     const userID = req.session.user_id;
-    urlDatabase[shortURL] = { 
+    urlDatabase[id] = { 
       longURL: longURL,
       userID: userID
     }; //save longURL and userID keys to our urlDatabase
-    res.redirect(`/urls/${shortURL}`); //redirect the user to a new page that shows the short url. Browser makes a GET request to /urls/:id (urls_show)
+    res.redirect(`/urls/${id}`); //redirect the user to a new page that shows the short url. Browser makes a GET request to /urls/:id (urls_show)
   };
 
 });
@@ -165,11 +153,11 @@ app.post("/urls/:id/delete", (req, res) => {
   const userid = req.session.user_id;
   
   if (!urlDatabase[id]) {
-    res.send("This tiny URL does not exist.");
+    res.status(404).send("This tiny URL does not exist.");
   } else if (!userid) {
-    res.send("Please log in to delete your tinyURL!");
+    res.status(401).send("Please log in to delete your tinyURL!");
   } else if (userid !== urlDatabase[req.params.id].userID) {
-    res.send("You are not authorized to delete this tinyURL.");
+    res.status(403).send("You are not authorized to delete this tinyURL.");
   } else {
     delete urlDatabase[id];
     res.redirect("/urls");
@@ -185,11 +173,11 @@ app.post("/urls/:id", (req, res) => {
   const userid = req.session.user_id;
 
   if (!userid) {
-    res.send("Please log in to see your tinyURL!");
+    return res.status(401).send("Please log in to see your tinyURLs.");
   } else if (!urlDatabase[id]) {
-    res.send("This tiny URL does not exist.");
+    return res.status(404).send("This tiny URL does not exist.");
   } else if (userid !== urlDatabase[req.params.id].userID) {
-    res.send("You are not authorized to access this tinyURL.");
+    return res.status(403).send("You are not authorized to access this tinyURL.");
   } else {
     res.redirect("/urls");
   };
@@ -226,9 +214,9 @@ app.post("/register", (req, res) => {
   const hashedPassword = bcrypt.hashSync(password, 10); //converts the plain-text password to an unintelligible string with a salt
 
   if (!email || !password) {
-    return res.status(400).send("The email or password cannot be blank. Please try again.");
+    res.status(400).send("The email or password cannot be blank. Please try again.");
   } else if (getUserByEmail(email, users)){
-      return res.status(400).send("The email has already been registered.");
+    res.status(400).send("The email has already been registered.");
   } else {
     const uniqueID = generateRandomString();
     users[uniqueID] = {
